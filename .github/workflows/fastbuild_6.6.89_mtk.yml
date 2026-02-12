@@ -458,6 +458,16 @@ jobs:
           #添加对 Mountify (backslashxx/mountify) 模块的支持
           echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
+
+          # 启用 Landlock 并固定 LSM 链顺序（避免默认值/补丁差异导致未生效）
+          echo "CONFIG_SECURITY=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_SECURITY_LANDLOCK=y" >> ./common/arch/arm64/configs/gki_defconfig
+          if [[ "${{ github.event.inputs.baseband_guard }}" == "true" ]]; then
+            echo 'CONFIG_LSM="landlock,lockdown,baseband_guard,yama,integrity,selinux,bpf"' >> ./common/arch/arm64/configs/gki_defconfig
+          else
+            echo 'CONFIG_LSM="landlock,lockdown,yama,integrity,selinux,bpf"' >> ./common/arch/arm64/configs/gki_defconfig
+          fi
+
           if [[ "${{ github.event.inputs.lz4kd_enable }}" == "true" ]]; then
             echo "CONFIG_ZSMALLOC=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
