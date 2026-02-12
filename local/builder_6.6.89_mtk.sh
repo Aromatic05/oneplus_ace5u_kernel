@@ -347,6 +347,15 @@ fi
 echo "CONFIG_TMPFS_XATTR=y" >> "$DEFCONFIG_FILE"
 echo "CONFIG_TMPFS_POSIX_ACL=y" >> "$DEFCONFIG_FILE"
 
+# 启用 Landlock 并固定 LSM 链顺序
+echo "CONFIG_SECURITY=y" >> "$DEFCONFIG_FILE"
+echo "CONFIG_SECURITY_LANDLOCK=y" >> "$DEFCONFIG_FILE"
+if [[ "$APPLY_BBG" == "y" || "$APPLY_BBG" == "Y" ]]; then
+  echo 'CONFIG_LSM="landlock,lockdown,baseband_guard,yama,integrity,selinux,bpf"' >> "$DEFCONFIG_FILE"
+else
+  echo 'CONFIG_LSM="landlock,lockdown,yama,integrity,selinux,bpf"' >> "$DEFCONFIG_FILE"
+fi
+
 # 开启O2编译优化配置
 echo "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y" >> "$DEFCONFIG_FILE"
 #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
