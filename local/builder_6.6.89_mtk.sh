@@ -206,15 +206,23 @@ echo ">>> 应用 SUSFS&hook 补丁..."
 apply_patch_or_die() {
   local patch_file="$1"
   shift
-  local rej_file="${patch_file}.rej"
-  rm -f "$rej_file"
+  find . -name '*.rej' -type f -delete
   if ! patch "$@" < "$patch_file"; then
-    echo ">>> 补丁应用失败: $patch_file"
-    if [[ -f "$rej_file" ]]; then
-      echo "----- ${rej_file} (前200行) -----"
-      sed -n '1,200p' "$rej_file"
-      echo "----- end ${rej_file} -----"
+    # 兼容 mt6991 6.6.89 源码：50_add_susfs 补丁在 fs/proc/base.c 的 include hunk 可能因上下文差异失败
+    if [[ "$patch_file" == 50_add_susfs_in_gki-* ]] && [[ -f ./fs/proc/base.c.rej ]] && grep -q "susfs_def.h" ./fs/proc/base.c.rej; then
+      echo ">>> 检测到已知兼容性问题：手动补齐 fs/proc/base.c 的 susfs_def include 后继续"
+      if ! grep -q "linux/susfs_def.h" ./fs/proc/base.c; then
+        sed -i '/#include <linux\/cpufreq_times.h>/a #if defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)\n#include <linux\/susfs_def.h>\n#endif\n' ./fs/proc/base.c
+      fi
+      rm -f ./fs/proc/base.c.rej
+      return 0
     fi
+    echo ">>> 补丁应用失败: $patch_file"
+    for rej in $(find . -name '*.rej' -type f); do
+      echo "----- ${rej} (前200行) -----"
+      sed -n '1,200p' "$rej"
+      echo "----- end ${rej} -----"
+    done
     exit 1
   fi
 }
