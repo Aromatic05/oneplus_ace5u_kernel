@@ -394,6 +394,12 @@ jobs:
           else
             echo "已选择无内置KernelSU模式，跳过susfs配置..."
           fi
+          # 修复：部分补丁组合会让 fs/proc/base.c 出现 SUSFS 宏调用但缺少 susfs 头文件
+          cd ./common
+          if [[ -f ./fs/proc/base.c ]] && grep -q "SUSFS_IS_INODE_" ./fs/proc/base.c && ! grep -q "linux/susfs.h" ./fs/proc/base.c; then
+            echo "检测到 fs/proc/base.c 缺少 #include <linux/susfs.h>，正在修复..."
+            sed -i '0,/^#include /s//&\n#include <linux\/susfs.h>/' ./fs/proc/base.c
+          fi
           
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
         if: inputs.lz4_enable

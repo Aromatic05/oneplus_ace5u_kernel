@@ -294,6 +294,11 @@ else
   echo ">>> 未开启susfs，跳过susfs补丁配置..."
   cd common
 fi
+# 修复：部分补丁组合会让 fs/proc/base.c 出现 SUSFS 宏调用但缺少 susfs 头文件
+if [[ "$APPLY_SUSFS" == [yY] ]] && [[ -f ./fs/proc/base.c ]] && grep -q "SUSFS_IS_INODE_" ./fs/proc/base.c && ! grep -q "linux/susfs.h" ./fs/proc/base.c; then
+  echo ">>> 检测到 fs/proc/base.c 缺少 #include <linux/susfs.h>，正在修复..."
+  sed -i '0,/^#include /s//&\n#include <linux\/susfs.h>/' ./fs/proc/base.c
+fi
 cd ../
 
 # ===== 应用 LZ4 & ZSTD 补丁 =====
