@@ -203,6 +203,21 @@ fi
 echo ">>> 克隆补丁仓库..."
 cd "$WORKDIR/kernel_workspace"
 echo ">>> 应用 SUSFS&hook 补丁..."
+apply_patch_or_die() {
+  local patch_file="$1"
+  shift
+  local rej_file="${patch_file}.rej"
+  rm -f "$rej_file"
+  if ! patch "$@" < "$patch_file"; then
+    echo ">>> 补丁应用失败: $patch_file"
+    if [[ -f "$rej_file" ]]; then
+      echo "----- ${rej_file} (前200行) -----"
+      sed -n '1,200p' "$rej_file"
+      echo "----- end ${rej_file} -----"
+    fi
+    exit 1
+  fi
+}
 if [[ "$KSU_BRANCH" == [yYrR] && "$APPLY_SUSFS" == [yY] ]]; then
   git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
   wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
@@ -210,10 +225,10 @@ if [[ "$KSU_BRANCH" == [yYrR] && "$APPLY_SUSFS" == [yY] ]]; then
   cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
   cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
   cd ./common
-  patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
+  apply_patch_or_die "50_add_susfs_in_gki-android15-6.6.patch" -p1
   #临时修复 undeclared identifier 'vma' 编译错误：把vma = find_vma(...)替换为struct vm_area_struct *vma = find_vma(...)，解决部分版本源码中vma定义缺失的问题
   sed -i 's|vma = find_vma(mm|struct vm_area_struct *&|' ./fs/proc/task_mmu.c
-  patch -p1 -F 3 < 69_hide_stuff.patch || true
+  apply_patch_or_die "69_hide_stuff.patch" -p1 -F 3
 elif [[ "$KSU_BRANCH" == [nN] && "$APPLY_SUSFS" == [yY] ]]; then
   git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
   wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
@@ -221,10 +236,10 @@ elif [[ "$KSU_BRANCH" == [nN] && "$APPLY_SUSFS" == [yY] ]]; then
   cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
   cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
   cd ./common
-  patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
+  apply_patch_or_die "50_add_susfs_in_gki-android15-6.6.patch" -p1
   #临时修复 undeclared identifier 'vma' 编译错误：把vma = find_vma(...)替换为struct vm_area_struct *vma = find_vma(...)，解决部分版本源码中vma定义缺失的问题
   sed -i 's|vma = find_vma(mm|struct vm_area_struct *&|' ./fs/proc/task_mmu.c
-  patch -p1 -N -F 3 < 69_hide_stuff.patch || true
+  apply_patch_or_die "69_hide_stuff.patch" -p1 -N -F 3
 elif [[ "$KSU_BRANCH" == [mM] && "$APPLY_SUSFS" == [yY] ]]; then
   git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
   wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
@@ -250,15 +265,15 @@ elif [[ "$KSU_BRANCH" == [mM] && "$APPLY_SUSFS" == [yY] ]]; then
   cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
   cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
   cd ./KernelSU
-  patch -p1 < 10_enable_susfs_for_ksu.patch || true
+  apply_patch_or_die "10_enable_susfs_for_ksu.patch" -p1
   #为MKSU修正susfs 2.0.0补丁
   wget https://github.com/cctv18/oppo_oplus_realme_sm8750/raw/refs/heads/main/other_patch/mksu_supercalls.patch
-  patch -p1 < mksu_supercalls.patch || true
+  apply_patch_or_die "mksu_supercalls.patch" -p1
   cd ../common
-  patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
+  apply_patch_or_die "50_add_susfs_in_gki-android15-6.6.patch" -p1
   #临时修复 undeclared identifier 'vma' 编译错误：把vma = find_vma(...)替换为struct vm_area_struct *vma = find_vma(...)，解决部分版本源码中vma定义缺失的问题
   sed -i 's|vma = find_vma(mm|struct vm_area_struct *&|' ./fs/proc/task_mmu.c
-  patch -p1 -N -F 3 < 69_hide_stuff.patch || true
+  apply_patch_or_die "69_hide_stuff.patch" -p1 -N -F 3
 elif [[ "$KSU_BRANCH" == [kK] && "$APPLY_SUSFS" == [yY] ]]; then
   git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
   wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
@@ -284,12 +299,12 @@ elif [[ "$KSU_BRANCH" == [kK] && "$APPLY_SUSFS" == [yY] ]]; then
   cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
   cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
   cd ./KernelSU
-  patch -p1 < 10_enable_susfs_for_ksu.patch || true
+  apply_patch_or_die "10_enable_susfs_for_ksu.patch" -p1
   cd ../common
-  patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
+  apply_patch_or_die "50_add_susfs_in_gki-android15-6.6.patch" -p1
   #临时修复 undeclared identifier 'vma' 编译错误：把vma = find_vma(...)替换为struct vm_area_struct *vma = find_vma(...)，解决部分版本源码中vma定义缺失的问题
   sed -i 's|vma = find_vma(mm|struct vm_area_struct *&|' ./fs/proc/task_mmu.c
-  patch -p1 -N -F 3 < 69_hide_stuff.patch || true
+  apply_patch_or_die "69_hide_stuff.patch" -p1 -N -F 3
 else
   echo ">>> 未开启susfs，跳过susfs补丁配置..."
   cd common
