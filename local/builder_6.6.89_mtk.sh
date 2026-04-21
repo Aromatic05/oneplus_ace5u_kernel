@@ -217,6 +217,14 @@ apply_patch_or_die() {
       rm -f ./fs/proc/base.c.rej
       return 0
     fi
+    # 兼容 mt6991 6.6.89 源码：69_hide_stuff.patch 在 fs/proc/task_mmu.c 的 lineage/jit-zygote-cache hunk 可能不匹配
+    if [[ "$patch_file" == "69_hide_stuff.patch" ]] && [[ -f ./fs/proc/task_mmu.c.rej ]]; then
+      if grep -q "lineage" ./fs/proc/task_mmu.c.rej && grep -q "jit-zygote-cache" ./fs/proc/task_mmu.c.rej; then
+        echo ">>> 检测到已知兼容性问题：忽略 69_hide_stuff.patch 在 fs/proc/task_mmu.c 的不兼容 hunk 并继续"
+        rm -f ./fs/proc/task_mmu.c.rej
+        return 0
+      fi
+    fi
     echo ">>> 补丁应用失败: $patch_file"
     for rej in $(find . -name '*.rej' -type f); do
       echo "----- ${rej} (前200行) -----"
