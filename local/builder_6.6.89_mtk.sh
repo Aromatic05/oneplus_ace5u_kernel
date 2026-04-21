@@ -328,7 +328,15 @@ fi
 # 修复：部分补丁组合会让 fs/proc/base.c 出现 SUSFS 宏调用但缺少 susfs 头文件
 if [[ "$APPLY_SUSFS" == [yY] ]] && [[ -f ./fs/proc/base.c ]] && grep -q "SUSFS_IS_INODE_" ./fs/proc/base.c && ! grep -q "linux/susfs.h" ./fs/proc/base.c; then
   echo ">>> 检测到 fs/proc/base.c 缺少 #include <linux/susfs.h>，正在修复..."
-  sed -i '0,/^#include /s//&\n#include <linux\/susfs.h>/' ./fs/proc/base.c
+  if grep -q '^#include <linux/uaccess.h>$' ./fs/proc/base.c; then
+    sed -i '/^#include <linux\/uaccess.h>$/i #include <linux\/susfs.h>' ./fs/proc/base.c
+  else
+    sed -i '0,/^#include .*$/s//&\n#include <linux\/susfs.h>/' ./fs/proc/base.c
+  fi
+fi
+if [[ "$APPLY_SUSFS" == [yY] ]] && [[ -f ./include/linux/susfs_def.h ]] && ! grep -q '^#include <linux/cred.h>$' ./include/linux/susfs_def.h; then
+  echo ">>> 检测到 include/linux/susfs_def.h 缺少 cred 头文件，正在修复..."
+  sed -i '1i #include <linux/cred.h>' ./include/linux/susfs_def.h
 fi
 cd ../
 
